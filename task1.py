@@ -2,38 +2,34 @@ import mmh3
 from bitarray import bitarray
 
 class BloomFilter:
-    def __init__(self, size: int, num_hashes: int):
+    def __init__(self, size, num_hashes):
         self.size = size
         self.num_hashes = num_hashes
         self.bit_array = bitarray(size)
         self.bit_array.setall(0)
 
-    def add(self, item: str):
+    def add(self, item):
         for i in range(self.num_hashes):
-            index = self._hash(item, i) % self.size
+            index = mmh3.hash(item, i) % self.size
             self.bit_array[index] = 1
 
-    def check(self, item: str) -> bool:
+    def contains(self, item):
         for i in range(self.num_hashes):
-            index = self._hash(item, i) % self.size
-            if not self.bit_array[index]:
+            index = mmh3.hash(item, i) % self.size
+            if self.bit_array[index] == 0:
                 return False
         return True
 
-    def _hash(self, item: str, i: int) -> int:
-        return mmh3.hash(item, i)
-
-def check_password_uniqueness(bloom: BloomFilter, passwords: list) -> dict:
+def check_password_uniqueness(bloom, passwords):
     results = {}
     for password in passwords:
         if not isinstance(password, str) or not password:
-            results[password] = "Некоректний пароль"
-            continue
-        if bloom.check(password):
-            results[password] = "вже використаний"
+            results[password] = "Invalid"
+        elif bloom.contains(password):
+            results[password] = "Used"
         else:
-            results[password] = "унікальний"
             bloom.add(password)
+            results[password] = "Unique"
     return results
 
 if __name__ == "__main__":
@@ -46,9 +42,9 @@ if __name__ == "__main__":
         bloom.add(password)
 
     # Перевірка нових паролів
-    new_passwords_to_check = ["password123", "newpassword", "admin123", "guest"]
+    new_passwords_to_check = ["password123", "newpassword", "admin123", "guest", ""]
     results = check_password_uniqueness(bloom, new_passwords_to_check)
 
     # Виведення результатів
     for password, status in results.items():
-        print(f"Пароль '{password}' — {status}.")
+        print(f"Пароль '{password}' - {status}.")
